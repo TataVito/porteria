@@ -43,7 +43,7 @@ export default function Panel({ irA }) {
   const lista = useMemo(() => accesos.datos || [], [accesos.datos]);
   const dentro = lista.filter((a) => !a.salida_en);
   const deHoy = lista.filter((a) => diaDe(a.entrada_en) === hoy);
-  const maxMin = activo?.max_minutos_estacionamiento || 240;
+  const maxMin = activo?.max_minutos_estacionamiento || Infinity; // sin tiempo máximo: nunca hay exceso
   const deVisita = estacionamientos.filter((e) => e.activo && e.tipo !== 'residente');
   const ocupados = dentro.filter((a) => a.estacionamiento_id);
   const excedidos = ocupados.filter((a) => minutosDesde(a.entrada_en, ahora) > maxMin);
@@ -141,16 +141,18 @@ export default function Panel({ irA }) {
           </div>
         </Card>
 
-        <Card className="p-4">
-          <h3 className="mb-3 font-mono text-[11px] uppercase tracking-wide text-gray-500">Estacionamiento excedido (+{duracion(maxMin)})</h3>
-          {excedidos.length === 0 && <p className="text-sm text-gray-500">Ninguno.</p>}
-          {excedidos.map((a) => (
-            <p key={a.id} className="border-b border-gray-100 py-1.5 text-sm">
-              <b>{estPorId.get(a.estacionamiento_id)?.codigo}</b> · {a.nombre} · {a.patente} · {duracion(minutosDesde(a.entrada_en, ahora))}
-              {a.unidad_id && ` · casa ${nombreUnidad(unidadPorId.get(a.unidad_id))}`}
-            </p>
-          ))}
-        </Card>
+        {maxMin !== Infinity && (
+          <Card className="p-4">
+            <h3 className="mb-3 font-mono text-[11px] uppercase tracking-wide text-gray-500">Estacionamiento excedido (+{duracion(maxMin)})</h3>
+            {excedidos.length === 0 && <p className="text-sm text-gray-500">Ninguno.</p>}
+            {excedidos.map((a) => (
+              <p key={a.id} className="border-b border-gray-100 py-1.5 text-sm">
+                <b>{estPorId.get(a.estacionamiento_id)?.codigo}</b> · {a.nombre} · {a.patente} · {duracion(minutosDesde(a.entrada_en, ahora))}
+                {a.unidad_id && ` · casa ${nombreUnidad(unidadPorId.get(a.unidad_id))}`}
+              </p>
+            ))}
+          </Card>
+        )}
       </div>
 
       <Card className="mt-4 p-4">

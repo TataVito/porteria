@@ -275,6 +275,30 @@ await como(con2, async () => {
   check('ni crea encomiendas allá', (await falla(`insert into encomiendas (condominio_id, unidad_id) values ($1,$2)`, [c1, u101])) !== null);
 });
 
+console.log('Cuenta compartida (part-time)');
+const part = await crearUsuario('parttime', 'conserje', { condominios: [c1] });
+await como(con1, async () => {
+  check('conserje no marca cuentas compartidas', (await falla(`select marcar_compartida($1, true)`, [part])) !== null);
+});
+await como(adm1, async () => {
+  check('admin marca su conserje como compartida', (await falla(`select marcar_compartida($1, true)`, [part])) === null);
+  check('admin no marca a un residente', (await falla(`select marcar_compartida($1, true)`, [res101])) !== null);
+  check('admin no marca conserje de otro condominio', (await falla(`select marcar_compartida($1, true)`, [con2])) !== null);
+});
+await como(con1, async () => {
+  check('cuenta no compartida no fija nombre de turno', (await falla(`select fijar_nombre_turno('Juan Pérez')`)) !== null);
+});
+await como(part, async () => {
+  check('nombre de turno muy corto rechazado', (await falla(`select fijar_nombre_turno('J')`)) !== null);
+  check('fija nombre de turno', (await falla(`select fijar_nombre_turno('  Juan   Pérez ')`)) === null);
+  const [b] = await q(`insert into bitacora (condominio_id, texto) values ($1, 'Turno part-time') returning usuario`, [c1]);
+  check('registro anota cuenta + nombre de turno', b.usuario === 'parttime (Juan Pérez)', b.usuario);
+  check('no se cambia a sí misma a no compartida', (await falla(`select marcar_compartida($1, false)`, [part])) !== null);
+  check('al salir borra el nombre', (await falla(`select fijar_nombre_turno('')`)) === null);
+  const [b2] = await q(`insert into bitacora (condominio_id, texto) values ($1, 'Sin nombre') returning usuario`, [c1]);
+  check('sin nombre anota solo la cuenta', b2.usuario === 'parttime', b2.usuario);
+});
+
 console.log('Auditoría');
 await como(adm1, async () => {
   const n = (await q(`select count(*)::int as n from auditoria`))[0].n;

@@ -32,7 +32,7 @@ export function Estacionamientos() {
 
   return (
     <div>
-      <Titulo sub="Los de visita se asignan en portería y avisan cuando una visita excede el tiempo máximo." accion={<Button onClick={() => setEditar({})}>+ Estacionamiento</Button>}>
+      <Titulo sub="Los de visita se asignan en portería y, si el condominio tiene tiempo máximo, avisan cuando una visita lo excede." accion={<Button onClick={() => setEditar({})}>+ Estacionamiento</Button>}>
         Estacionamientos
       </Titulo>
       <Card className="mb-4 p-4">
@@ -224,12 +224,12 @@ export function DatosCondominio({ esSuper }) {
   const [nuevo, setNuevo] = useState('');
   const [borrar, setBorrar] = useState('');
   useEffect(() => {
-    if (activo) setF({ nombre: activo.nombre, direccion: activo.direccion, comuna: activo.comuna, telefono_conserjeria: activo.telefono_conserjeria, max_minutos_estacionamiento: activo.max_minutos_estacionamiento });
+    if (activo) setF({ nombre: activo.nombre, direccion: activo.direccion, comuna: activo.comuna, telefono_conserjeria: activo.telefono_conserjeria, max_minutos_estacionamiento: activo.max_minutos_estacionamiento ?? '' });
   }, [activo]);
 
   async function guardar(e) {
     e.preventDefault();
-    const { error } = await supabase.from('condominios').update({ ...f, max_minutos_estacionamiento: Number(f.max_minutos_estacionamiento) }).eq('id', activo.id);
+    const { error } = await supabase.from('condominios').update({ ...f, max_minutos_estacionamiento: f.max_minutos_estacionamiento === '' ? null : Number(f.max_minutos_estacionamiento) }).eq('id', activo.id);
     if (error) return avisar(mensajeError(error), 'rojo');
     avisar('Datos guardados');
     recargarCondominios();
@@ -271,8 +271,8 @@ export function DatosCondominio({ esSuper }) {
             <Field label="Comuna">
               <Input value={f.comuna} onChange={(e) => setF((x) => ({ ...x, comuna: e.target.value }))} />
             </Field>
-            <Field label="Tiempo máximo de visita en estacionamiento (minutos)" hint="Al pasarlo, portería lo ve en naranja">
-              <Input type="number" min="15" max="2880" value={f.max_minutos_estacionamiento} onChange={(e) => setF((x) => ({ ...x, max_minutos_estacionamiento: e.target.value }))} />
+            <Field label="Tiempo máximo de visita en estacionamiento (minutos)" hint="Vacío = sin límite. Al pasarlo, portería lo ve en naranja">
+              <Input type="number" min="15" max="2880" placeholder="Sin límite" value={f.max_minutos_estacionamiento} onChange={(e) => setF((x) => ({ ...x, max_minutos_estacionamiento: e.target.value }))} />
             </Field>
             <div className="flex items-end">
               <Button type="submit">Guardar</Button>

@@ -31,7 +31,7 @@ export function useSesion() {
     setCargando(true);
     supabase
       .from('perfiles')
-      .select('id, usuario, nombre, rol, unidad_id')
+      .select('id, usuario, nombre, rol, unidad_id, compartida, nombre_turno')
       .eq('id', userId)
       .single()
       .then(({ data, error }) => {
@@ -58,8 +58,22 @@ export function useSesion() {
     return 'Usuario o clave incorrectos.';
   }, []);
 
+  // Cuenta compartida: quien está de turno escribe su nombre (queda en cada registro).
+  const fijarTurno = useCallback(async (nombre) => {
+    const { error } = await supabase.rpc('fijar_nombre_turno', { p_nombre: nombre });
+    if (error) return error.message;
+    setPerfil((p) => {
+      const nuevo = { ...p, nombre_turno: nombre.trim().replace(/\s+/g, ' ') };
+      guardarLocal('perfil', nuevo);
+      return nuevo;
+    });
+    return null;
+  }, []);
+
   // Al salir se borran las copias locales: no deben quedar en un equipo compartido.
   const logout = useCallback(async (motivo) => {
+    // El próximo que entre a una cuenta compartida debe escribir su propio nombre.
+    if (perfil?.compartida) await supabase.rpc('fijar_nombre_turno', { p_nombre: '' });
     borrarTodoLocal();
     if (typeof motivo === 'string' && motivo) {
       try {
@@ -69,7 +83,7 @@ export function useSesion() {
       }
     }
     await supabase.auth.signOut({ scope: 'local' });
-  }, []);
+  }, [perfil?.compartida]);
 
   const rol = perfil?.rol || '';
   return {
@@ -83,5 +97,6 @@ export function useSesion() {
     esResidente: rol === 'residente',
     login,
     logout,
+    fijarTurno,
   };
 }

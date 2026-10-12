@@ -6,6 +6,7 @@ import { useSesion } from './lib/useSesion.js';
 import { useInactividad } from './lib/useInactividad.js';
 import { PREFIJO_APP, RAIZ } from './lib/app.js';
 import Login from './pages/Login.jsx';
+import NombreTurno from './pages/NombreTurno.jsx';
 import MiCuenta from './components/MiCuenta.jsx';
 import Porteria from './pages/porteria/Porteria.jsx';
 import Panel from './pages/admin/Panel.jsx';
@@ -54,6 +55,9 @@ function Raiz() {
       </div>
     );
   }
+  if (sesion.perfil.rol === 'conserje' && sesion.perfil.compartida && !sesion.perfil.nombre_turno) {
+    return <NombreTurno perfil={sesion.perfil} fijarTurno={sesion.fijarTurno} onCancelar={() => sesion.logout()} />;
+  }
   return (
     <ProveedorCondominio perfil={sesion.perfil}>
       <Principal sesion={sesion} />
@@ -93,6 +97,7 @@ function Principal({ sesion }) {
   });
   const [menu, setMenu] = useState(false);
   const [cuenta, setCuenta] = useState(false);
+  const [cambiarTurno, setCambiarTurno] = useState(false);
 
   useEffect(() => {
     try {
@@ -112,6 +117,15 @@ function Principal({ sesion }) {
     window.scrollTo(0, 0);
   };
   const oscuro = seccion === 'porteria';
+
+  if (cambiarTurno) {
+    const fijar = async (nombre) => {
+      const fallo = await sesion.fijarTurno(nombre);
+      if (!fallo) setCambiarTurno(false);
+      return fallo;
+    };
+    return <NombreTurno perfil={perfil} fijarTurno={fijar} onCancelar={() => setCambiarTurno(false)} textoCancelar="Volver" />;
+  }
 
   return (
     <div className={`min-h-screen ${oscuro ? 'bg-[#1C1C20]' : 'bg-papel'}`}>
@@ -153,6 +167,11 @@ function Principal({ sesion }) {
             ))}
         </nav>
         <div className="ml-auto flex items-center gap-1">
+          {perfil.rol === 'conserje' && perfil.compartida && (
+            <button type="button" onClick={() => setCambiarTurno(true)} className="min-h-[40px] max-w-[40vw] truncate border border-acento px-2 text-sm" title="Cambiar quién está de turno">
+              Turno: <b>{perfil.nombre_turno}</b>
+            </button>
+          )}
           <button type="button" onClick={() => setCuenta(true)} className="min-h-[40px] px-2 text-sm text-white/80 hover:text-white" title="Mi cuenta">
             {perfil.nombre || perfil.usuario}
           </button>

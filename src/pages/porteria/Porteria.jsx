@@ -51,7 +51,7 @@ export default function Porteria({ esAdmin }) {
 
   const listaDentro = useMemo(() => dentro.datos || [], [dentro.datos]);
   const ocupados = useMemo(() => new Map(listaDentro.filter((a) => a.estacionamiento_id).map((a) => [a.estacionamiento_id, a])), [listaDentro]);
-  const maxMin = activo?.max_minutos_estacionamiento || 240;
+  const maxMin = activo?.max_minutos_estacionamiento || Infinity; // sin tiempo máximo: nunca hay exceso
   const excedidos = listaDentro.filter((a) => a.estacionamiento_id && minutosDesde(a.entrada_en, ahora) > maxMin);
   const deVisita = estacionamientos.filter((e) => e.activo && e.tipo !== 'residente');
   const libres = deVisita.filter((e) => !ocupados.has(e.id)).length;
@@ -597,7 +597,7 @@ function MapaEstacionamientos({ estacionamientos, ocupados, ahora, maxMin, onSal
       <div className="flex flex-wrap gap-4 text-sm text-white/70">
         <span><i className="mr-1 inline-block h-3 w-3 bg-[#2F7D4F] align-middle" /> Libre</span>
         <span><i className="mr-1 inline-block h-3 w-3 bg-white/25 align-middle" /> Ocupado</span>
-        <span><i className="mr-1 inline-block h-3 w-3 bg-[#E07A1F] align-middle" /> Más de {duracion(maxMin)}</span>
+        {maxMin !== Infinity && <span><i className="mr-1 inline-block h-3 w-3 bg-[#E07A1F] align-middle" /> Más de {duracion(maxMin)}</span>}
       </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
         {deVisita.map((e) => {

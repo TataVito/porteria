@@ -23,7 +23,7 @@ export default function Usuarios({ perfil, esSuper }) {
   const [editar, setEditar] = useState(null);
   const [masivo, setMasivo] = useState(false);
 
-  const perfiles = useConsulta(null, () => supabase.from('perfiles').select('id, usuario, nombre, rol, unidad_id').order('usuario'), [perfil.id]);
+  const perfiles = useConsulta(null, () => supabase.from('perfiles').select('id, usuario, nombre, rol, unidad_id, compartida, nombre_turno').order('usuario'), [perfil.id]);
   const asignaciones = useConsulta(null, () => supabase.from('condominio_usuarios').select('*'), [perfil.id]);
   const recargar = () => {
     perfiles.recargar();
@@ -77,10 +77,11 @@ export default function Usuarios({ perfil, esSuper }) {
             <div key={p.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="font-bold">
-                  {p.usuario} <Badge tono={TONO_ROL[p.rol]}>{ROLES[p.rol]}</Badge> {p.id === perfil.id && <Badge>Tú</Badge>}
+                  {p.usuario} <Badge tono={TONO_ROL[p.rol]}>{ROLES[p.rol]}</Badge> {p.id === perfil.id && <Badge>Tú</Badge>} {p.rol === 'conserje' && p.compartida && <Badge tono="ambar">Compartida</Badge>}
                 </p>
                 <p className="text-sm text-gray-500">
                   {p.nombre}
+                  {p.rol === 'conserje' && p.compartida && (p.nombre_turno ? ` · de turno: ${p.nombre_turno}` : ' · pide nombre al entrar')}
                   {p.rol === 'residente' && ` · casa ${nombreUnidad(unidadPorId.get(p.unidad_id))}`}
                   {p.rol !== 'residente' && p.rol !== 'superusuario' && condDe.get(p.id)?.length > 1 && ` · ${condDe.get(p.id).length} condominios`}
                 </p>
@@ -130,6 +131,7 @@ function EditarUsuario({ u, esSuper, condominios, condominioId, unidades, onClos
     unidad_id: u.unidad_id || null,
     condominios: u.condominios?.length ? u.condominios : [condominioId],
     clave: nuevo ? claveAleatoria() : '',
+    compartida: Boolean(u.compartida),
   });
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -150,7 +152,14 @@ function EditarUsuario({ u, esSuper, condominios, condominioId, unidades, onClos
       ...(nuevo ? { usuario: f.usuario } : {}),
       ...(f.clave ? { clave: f.clave } : {}),
     };
-    const err = await gestionarUsuario(cuerpo);
+    let err = await gestionarUsuario(cuerpo);
+    // Cuenta compartida (part-time): se marca aparte, ya creada la cuenta.
+    const compartida = f.rol === 'conserje' && f.compartida;
+    if (!err && f.rol === 'conserje' && compartida !== Boolean(u.compartida)) {
+      const { data } = await supabase.from('perfiles').select('id').eq('usuario', f.usuario).single();
+      const r = data ? await supabase.rpc('marcar_compartida', { p_usuario: data.id, p_compartida: compartida }) : { error: { message: 'No se encontró el usuario' } };
+      if (r.error) err = `Guardado, pero no se pudo marcar como compartida: ${r.error.message}`;
+    }
     setEnviando(false);
     if (err) return setError(err);
     avisar(nuevo ? `Usuario ${f.usuario} creado` : 'Usuario actualizado');
@@ -204,6 +213,14 @@ function EditarUsuario({ u, esSuper, condominios, condominioId, unidades, onClos
               ))}
             </div>
           </Field>
+        )}
+        {f.rol === 'conserje' && (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" checked={f.compartida} onChange={(e) => setF((x) => ({ ...x, compartida: e.target.checked }))} className="mt-0.5 h-5 w-5" />
+            <span>
+              <b>Cuenta compartida</b> (ej. part-time): al entrar pide el nombre de quien está de turno, y ese nombre queda en cada registro.
+            </span>
+          </label>
         )}
         <Field label={nuevo ? 'Clave inicial' : 'Nueva clave (vacío = no cambiar)'} hint="Mínimo 8 caracteres. Anótala y entrégasela; después la puede cambiar en «Mi cuenta».">
           <div className="flex gap-2">
