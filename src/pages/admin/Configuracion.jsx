@@ -215,14 +215,12 @@ export function ListaNegra() {
 }
 
 // ---------------------------------------------------------------------------
-// Datos del condominio (y, para el súper usuario, crear / eliminar condominios)
+// Datos del condominio (uno solo: Las Palmas; no se crean ni eliminan condominios)
 // ---------------------------------------------------------------------------
-export function DatosCondominio({ esSuper }) {
-  const { activo, condominios, recargarCondominios, elegir } = useCondominio();
+export function DatosCondominio() {
+  const { activo, recargarCondominios } = useCondominio();
   const avisar = useAvisar();
   const [f, setF] = useState(null);
-  const [nuevo, setNuevo] = useState('');
-  const [borrar, setBorrar] = useState('');
   useEffect(() => {
     if (activo) setF({ nombre: activo.nombre, direccion: activo.direccion, comuna: activo.comuna, telefono_conserjeria: activo.telefono_conserjeria, max_minutos_estacionamiento: activo.max_minutos_estacionamiento ?? '' });
   }, [activo]);
@@ -232,24 +230,6 @@ export function DatosCondominio({ esSuper }) {
     const { error } = await supabase.from('condominios').update({ ...f, max_minutos_estacionamiento: f.max_minutos_estacionamiento === '' ? null : Number(f.max_minutos_estacionamiento) }).eq('id', activo.id);
     if (error) return avisar(mensajeError(error), 'rojo');
     avisar('Datos guardados');
-    recargarCondominios();
-  }
-
-  async function crear(e) {
-    e.preventDefault();
-    const { data, error } = await supabase.from('condominios').insert({ nombre: nuevo.trim() }).select().single();
-    if (error) return avisar(mensajeError(error), 'rojo');
-    setNuevo('');
-    await recargarCondominios();
-    elegir(data.id);
-    avisar(`${data.nombre} creado. Ahora carga sus casas y estacionamientos.`);
-  }
-
-  async function eliminar() {
-    const { error } = await supabase.from('condominios').delete().eq('id', activo.id);
-    if (error) return avisar(mensajeError(error), 'rojo');
-    setBorrar('');
-    avisar('Condominio eliminado');
     recargarCondominios();
   }
 
@@ -281,28 +261,6 @@ export function DatosCondominio({ esSuper }) {
         </Card>
       )}
 
-      {esSuper && (
-        <Card className="p-4">
-          <h3 className="mb-2 font-bold">Condominios ({condominios.length})</h3>
-          <form onSubmit={crear} className="flex gap-2">
-            <Input value={nuevo} onChange={(e) => setNuevo(e.target.value)} placeholder="Nombre del nuevo condominio" required />
-            <Button type="submit">+ Crear</Button>
-          </form>
-          {activo && (
-            <div className="mt-6 border-t border-gray-200 pt-4">
-              <p className="text-sm text-gray-600">
-                Eliminar <b>{activo.nombre}</b> borra para siempre sus casas, residentes, accesos, encomiendas y bitácora. Para confirmar escribe su nombre:
-              </p>
-              <div className="mt-2 flex gap-2">
-                <Input value={borrar} onChange={(e) => setBorrar(e.target.value)} placeholder={activo.nombre} />
-                <Button variant="danger" disabled={borrar.trim() !== activo.nombre} onClick={eliminar}>
-                  Eliminar
-                </Button>
-              </div>
-            </div>
-          )}
-        </Card>
-      )}
     </div>
   );
 }

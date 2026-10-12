@@ -309,7 +309,8 @@ await como(con1, async () => {
   check('conserje no ve auditoría', (await q(`select * from auditoria`)).length === 0);
 });
 await como(sup, async () => {
-  check('súper elimina condominio (cascade)', (await q(`delete from condominios where id=$1 returning id`, [c2])).length === 1);
+  check('súper no crea condominios', (await falla(`insert into condominios (nombre) values ('x')`)) !== null);
+  check('súper no elimina condominios', (await q(`delete from condominios where id=$1 returning id`, [c2])).length === 0);
 });
 
 console.log(`\n${ok} pruebas OK, ${fallas} fallidas`);

@@ -17,7 +17,7 @@ function claveAleatoria() {
 }
 
 export default function Usuarios({ perfil, esSuper }) {
-  const { condominioId, condominios, unidades, unidadPorId, activo } = useCondominio();
+  const { condominioId, unidades, unidadPorId, activo } = useCondominio();
   const avisar = useAvisar();
   const [vista, setVista] = useState('personal');
   const [editar, setEditar] = useState(null);
@@ -83,7 +83,7 @@ export default function Usuarios({ perfil, esSuper }) {
                   {p.nombre}
                   {p.rol === 'conserje' && p.compartida && (p.nombre_turno ? ` · de turno: ${p.nombre_turno}` : ' · pide nombre al entrar')}
                   {p.rol === 'residente' && ` · casa ${nombreUnidad(unidadPorId.get(p.unidad_id))}`}
-                  {p.rol !== 'residente' && p.rol !== 'superusuario' && condDe.get(p.id)?.length > 1 && ` · ${condDe.get(p.id).length} condominios`}
+                  
                 </p>
               </div>
               {p.id !== perfil.id && (p.rol !== 'admin' || esSuper) && p.rol !== 'superusuario' && (
@@ -100,7 +100,6 @@ export default function Usuarios({ perfil, esSuper }) {
         <EditarUsuario
           u={editar}
           esSuper={esSuper}
-          condominios={condominios}
           condominioId={condominioId}
           unidades={unidades}
           onClose={(ok) => {
@@ -122,14 +121,14 @@ export default function Usuarios({ perfil, esSuper }) {
   );
 }
 
-function EditarUsuario({ u, esSuper, condominios, condominioId, unidades, onClose, avisar }) {
+function EditarUsuario({ u, esSuper, condominioId, unidades, onClose, avisar }) {
   const nuevo = !u.id;
   const [f, setF] = useState({
     usuario: u.usuario || '',
     nombre: u.nombre || '',
     rol: u.rol || 'conserje',
     unidad_id: u.unidad_id || null,
-    condominios: u.condominios?.length ? u.condominios : [condominioId],
+    condominios: [condominioId],
     clave: nuevo ? claveAleatoria() : '',
     compartida: Boolean(u.compartida),
   });
@@ -193,25 +192,9 @@ function EditarUsuario({ u, esSuper, condominios, condominioId, unidades, onClos
         <Field label="Nombre">
           <Input value={f.nombre} onChange={(e) => setF((x) => ({ ...x, nombre: e.target.value }))} />
         </Field>
-        {f.rol === 'residente' ? (
+        {f.rol === 'residente' && (
           <Field label="Casa" required>
             <SelectorUnidad unidades={unidades} valor={f.unidad_id} onChange={(v) => setF((x) => ({ ...x, unidad_id: v }))} requerido />
-          </Field>
-        ) : (
-          <Field label="Condominios donde trabaja">
-            <div className="space-y-1">
-              {condominios.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5"
-                    checked={f.condominios.includes(c.id)}
-                    onChange={(e) => setF((x) => ({ ...x, condominios: e.target.checked ? [...x.condominios, c.id] : x.condominios.filter((y) => y !== c.id) }))}
-                  />
-                  {c.nombre}
-                </label>
-              ))}
-            </div>
           </Field>
         )}
         {f.rol === 'conserje' && (

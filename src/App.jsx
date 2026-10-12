@@ -85,7 +85,7 @@ function seccionesDe(sesion) {
 
 function Principal({ sesion }) {
   const { perfil, esAdmin, esSuper } = sesion;
-  const { condominios, activo, elegir, cargandoCondominios } = useCondominio();
+  const { activo, cargandoCondominios } = useCondominio();
   const secciones = seccionesDe(sesion);
   const [seccion, setSeccion] = useState(() => {
     try {
@@ -137,22 +137,7 @@ function Principal({ sesion }) {
         )}
         <img src={`${RAIZ}logo.png`} alt="" className="h-10 w-10 rounded-full bg-white object-contain" />
         <span className="hidden font-faenacond text-xl font-bold uppercase tracking-wide sm:inline">Portería</span>
-        {condominios.length > 1 ? (
-          <select
-            value={activo?.id || ''}
-            onChange={(e) => elegir(e.target.value)}
-            className="min-h-[40px] max-w-[45vw] border border-white/25 bg-white/10 px-2 text-sm text-white [&>option]:text-tinta"
-            aria-label="Condominio"
-          >
-            {condominios.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="truncate text-sm text-white/70">{activo?.nombre}</span>
-        )}
+        <span className="truncate text-sm text-white/70">{activo?.nombre}</span>
         <nav className="ml-2 hidden flex-1 items-center gap-0.5 overflow-x-auto lg:flex">
           {secciones.length > 1 &&
             secciones.map((s) => (
@@ -202,11 +187,7 @@ function Principal({ sesion }) {
         <Cargando />
       ) : !activo ? (
         <div className="mx-auto max-w-lg p-6">
-          {esSuper ? (
-            <DatosCondominio esSuper />
-          ) : (
-            <Vacio titulo="No tienes condominios asignados">Pide a la administración que te asigne uno.</Vacio>
-          )}
+          <Vacio titulo="No tienes condominio asignado">Pide a la administración que te asigne.</Vacio>
         </div>
       ) : seccion === 'porteria' ? (
         <Porteria key={activo.id} esAdmin={esAdmin} />
@@ -219,7 +200,7 @@ function Principal({ sesion }) {
           {seccion === 'lista_negra' && <ListaNegra />}
           {seccion === 'usuarios' && <Usuarios perfil={perfil} esSuper={esSuper} />}
           {seccion === 'auditoria' && <Auditoria />}
-          {seccion === 'condominio' && <DatosCondominio esSuper={esSuper} />}
+          {seccion === 'condominio' && <DatosCondominio />}
         </main>
       )}
 
