@@ -1,0 +1,22 @@
+name: Mantener Supabase activo
+
+# El plan gratis de Supabase pausa el proyecto tras 7 días sin uso.
+# Esta tarea hace una consulta mínima lunes y jueves (sin sesión, RLS no devuelve datos).
+on:
+  schedule:
+    - cron: '23 12 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta a Supabase
+        # Sin sesión la base responde "permission denied" (401): igual cuenta como actividad.
+        run: |
+          codigo=$(curl -sS -o respuesta.txt -w '%{http_code}' "${{ vars.VITE_SUPABASE_URL }}/rest/v1/condominios?select=id&limit=1"             -H "apikey: ${{ vars.VITE_SUPABASE_ANON_KEY }}")
+          cat respuesta.txt; echo; echo "HTTP $codigo"
+          test "$codigo" = 200 || grep -q 42501 respuesta.txt
